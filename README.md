@@ -1,41 +1,66 @@
-# Microsoft AI Lab
-## What is [AI Lab?](https://www.ailab.microsoft.com/experiments)
+# Sketch2Code (Documentation)
 
-AI Lab helps our large fast-growing community of developers get started on AI. You can experience, learn and code the latest and greatest innovations from Microsoft AI here. AI Lab currently houses eight projects that showcase the latest in custom vision, attnGAN, Visual Studio tools for AI, Cognitive Search, Machine Reading Comprehension and more. Each lab gives you access to the experimentation playground, source code on GitHub, a crisp developer-friendly video, and insights into the underlying developer/ organizational challenge and solution. 
+## Description
+[Sketch2Code](https://www.ailab.microsoft.com/experiments/30c61484-d081-4072-99d6-e132d362b99d) is a solution that uses AI to transform a handwritten user interface design from a picture to valid HTML markup code. 
+
+## Process flow
+The process of transformation of a handwritten image to HTML. How this solution is implemented is as follows:
+1.	First, the user uploads an image through the website.
+2.	A custom vision model predicts what HTML elements are present in the image and their location.
+3.	A handwritten text recognition service reads the text inside the predicted elements.
+4.	A layout algorithm uses the spatial information from all the bounding boxes of the predicted elements to generate a grid structure that accommodates all.
+5.	An HTML generation engine uses all these pieces of information to generate an HTML markup code reflecting the result.
 
 <p align="center">
-  <img width="560" height="300" src="https://github.com/Microsoft/ailab/blob/master/images/AI Lab.png">
+  <img width="560" height="300" src="https://github.com/Microsoft/ailab/blob/master/Sketch2Code/images/S2C_Homepage-Carousel.gif">
 </p>
 
-AI Lab is developed in partnership with Microsoft’s AI School and the Microsoft Research (MSR) AI organization.
-
-# Microsoft AI Lab Projects
-- [Spektacom "Power Bat"](https://www.ailab.microsoft.com/experiments/ce508ed3-cea9-41eb-a08e-ab4727556f7b)
-- [Snip Insights](https://www.ailab.microsoft.com/experiments/32e85f94-3fdd-4a4b-b1ca-9f4cdf47feb6)
-- [Intelligent Robotics](https://www.ailab.microsoft.com/experiments/f508a96d-3255-474b-a769-d5b2cf2bb9d6)
-- [Sketch 2 Code](https://www.ailab.microsoft.com/experiments/30c61484-d081-4072-99d6-e132d362b99d)
-- [Build a bot](https://www.ailab.microsoft.com/experiments/1af37019-42f1-4a74-baa8-0ec847419c02)
-- [Drawing Bot](https://www.ailab.microsoft.com/experiments/1e9e1eef-2ab1-41f1-b341-0118f414bd78)
-- [JFK Files](https://www.ailab.microsoft.com/experiments/7d6b0652-51dc-440d-a12a-481f28525143)
-- [Drones](https://www.ailab.microsoft.com/experiments/92262b36-de2e-444e-86ca-8bcb8bd02454)
-- [Style Transfer](https://www.ailab.microsoft.com/experiments/99907c05-d487-450b-9ee9-901b40205e81)
-- [MRC](https://www.ailab.microsoft.com/experiments/ef90706b-e822-4686-bbc4-94fd0bca5fc5)
+## Architecture
+The Sketch2Code solution uses the following elements:
+-	A Microsoft Custom Vision Model: This model has been trained with images of different handwritten designs tagging the information of most common HTML elements like Buttons, TextBox and Image.
+-	A Microsoft Computer Vision Service: To identify the text written into a design element a Computer Vision Service is used.
+-	An Azure Blob Storage: All steps involved in the HTML generation process are stored, including original image, prediction results and layout grouping information. 
+-	An Azure Function: Serves as the backend entry point that coordinates the generation process by interacting with all the services.
+-	An Azure Web App: User front-end to enable uploading a new design and see the generated HTML results.
+These elements form the architecture as follows:
+![Sketch2Code Architecture](https://github.com/Microsoft/ailab/blob/master/Sketch2Code/images/architecture.png)
 
 
-# Contributing
+## How to configure the solution
 
-This project welcomes contributions and suggestions.  Most contributions require you to agree to a
-Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
-the rights to use your contribution. For details, visit https://cla.microsoft.com.
+### Microsoft Custom Vision Model
+The training set used to create the sample model used in the project is located in the Model folder. Each training image has a unique identifier that matches information contained in the dataset.json file. This file contains all the tag information used to train the sample model.
+To create your own model you can use this dataset to start and using the Custom Vision API upload this dataset to your own project.
+You can create your Custom Vision Project at https://customvision.ai.
+Once you have created your Custom Vision Project you need to annotate the Key and the Project Name to configure the Azure Function to call use the service.
 
-When you submit a pull request, a CLA-bot will automatically determine whether you need to provide
-a CLA and decorate the PR appropriately (e.g. label, comment). Simply follow the instructions
-provided by the bot. You will only need to do this once across all repos using our CLA.
+### Computer Vision Service
+A Microsoft Computer Vision Service is needed to perform handwritten character recognition.
+To create this service go to your Azure Subscription and create your own service. Annotate the Endpoint and the Key to complete the configuration of the solution.
 
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
-For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
-contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+### Azure Blob Storage
+An [Azure Blob Storage](https://azure.microsoft.com/en-us/services/storage/blobs/) is used to store all the intermediary steps of the process.
+A new folder is created for each generation process with the following contents:
+-	\slices: Contains the cropped images used for text prediction.
+-	Original.png: image uploaded by the user.
+-	results.json: results from the prediction process run against the original image.
+-	groups.json: results from the layout algorithm containing the spatial distribution of predicted objects.
 
-# License
+### Azure Function
+The code for the provided Azure Function is located in the [Sketch2Code.Api](https://github.com/Microsoft/ailab/tree/master/Sketch2Code/Sketch2Code.Api) folder. You can use this code to create your own function and must define the following configuration parameters:
+-	AzureWebJobsStorage: Endpoint to the Azure Storage.
+-	ComputerVisionDelay: Time in milliseconds to wait between calls to the computer vision service. Sample works with 120ms.
+-	HandwrittenTextApiEndpoint: Endpoint to the Computer Vision Service.
+-	HandwrittenTextSubscriptionKey: Key to access the Computer Vision Service.
+-	ObjectDetectionIterationName: Name of the training iteration to use in the prediction model.
+-	ObjectDetectionPredictionKey: Prediction Key to access the Custom Vision Service.
+-	ObjectDetectionProjectName: Name of the custom vision project.
+-	ObjectDetectionTrainingKey: Training key for the custom vision service.
+-	Probability: Probability threshold to consider a successful object detection. Below this value predictions are not considered. Sample model works with 40. 
 
-Licensed under the [MIT](LICENSE) License.
+### Azure Web App
+The [Sketch2Code.Web](https://github.com/Microsoft/ailab/tree/master/Sketch2Code/Sketch2Code.Web) contains the code used to implement the front-end website. Two parameters must be configured:
+1.	Sketch2CodeAppFunctionEndPoint: Endpoint to the Azure Function
+2.	storageUrl: Url for the Azure Storage. 
+
+
